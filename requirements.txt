@@ -1,0 +1,8 @@
+streamlit
+python-dotenv
+yt-dlp
+langchain
+langchain-google-genai
+langchain-community
+langchain-core
+faiss-cpu
