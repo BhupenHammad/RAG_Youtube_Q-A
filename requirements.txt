@@ -6,3 +6,7 @@ langchain-google-genai
 langchain-community
 langchain-core
 faiss-cpu
+grpcio
+google-api-core
+google-auth
+protobuf
