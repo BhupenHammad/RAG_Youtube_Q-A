@@ -1,10 +1,5 @@
 import asyncio
-
-try:
-    asyncio.get_running_loop()
-except RuntimeError:
-    asyncio.set_event_loop(asyncio.new_event_loop())
-
+import sys
 import os
 import subprocess
 import hashlib
@@ -17,13 +12,17 @@ from langchain_core.prompts import PromptTemplate
 from langchain_core.messages import HumanMessage
 from dotenv import load_dotenv
 
+# Asyncio event loop fix for deployment
+try:
+    asyncio.get_running_loop()
+except RuntimeError:
+    asyncio.set_event_loop(asyncio.new_event_loop())
 
 load_dotenv()
 google_api_key = os.getenv("GOOGLE_API_KEY")
 if not google_api_key:
     st.error("❌ GOOGLE_API_KEY not found in .env file.")
     st.stop()
-
 
 model = ChatGoogleGenerativeAI(
     model='gemini-2.0-flash',
@@ -33,7 +32,6 @@ embedding_model = GoogleGenerativeAIEmbeddings(
     model="models/embedding-001",
     google_api_key=google_api_key
 )
-
 
 st.set_page_config(page_title="YouTube Q&A Chat", page_icon="🎥", layout="centered")
 st.title("🎥 YouTube Video Q&A (Chat Mode)")
@@ -60,7 +58,6 @@ Answer:
     input_variables=['context', 'question']
 )
 
-
 def vtt_to_text(vtt_path):
     with open(vtt_path, 'r', encoding='utf-8') as f:
         lines = f.readlines()
@@ -84,7 +81,7 @@ def load_or_create_vectorstore(video_url):
 
     with st.spinner("🔄 Downloading subtitles..."):
         cmd = [
-            "yt-dlp",
+            sys.executable, "-m", "yt_dlp",
             "--write-auto-sub",
             "--sub-lang", "en",
             "--skip-download",
@@ -94,6 +91,7 @@ def load_or_create_vectorstore(video_url):
         subprocess.run(cmd, check=True)
 
     vtt_file = None
+    video_title = "Unknown Video"
     for file in os.listdir(captions_dir):
         if file.endswith(".en.vtt"):
             vtt_file = os.path.join(captions_dir, file)
@@ -114,13 +112,12 @@ def load_or_create_vectorstore(video_url):
 
     return vectorstore.as_retriever(search_type="similarity", search_kwargs={"k": 6}), video_title
 
-
 if "retriever" not in st.session_state:
     st.session_state.retriever = None
 if "video_title" not in st.session_state:
     st.session_state.video_title = None
 if "messages" not in st.session_state:
-    st.session_state.messages = []  # [{"role": "user", "content": ""}, {"role": "assistant", "content": ""}]
+    st.session_state.messages = []
 
 # ---------------------------
 # Video Input
